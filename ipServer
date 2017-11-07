@@ -1,0 +1,122 @@
+/**
+ * 随机生成ip
+ * @return string
+ */
+class IpServer {
+    private static $count     = 10;
+    private static $fpingPath = '';
+
+    /**
+     * 设置需要的可用ip数量
+     * @param $count
+     */
+    public static function setCount($count) {
+        self::$count = $count;
+    }
+
+    /**
+     * 设置可用的fping路径
+     * @param $path
+     */
+    public static function setFpingPath($path) {
+        self::$fpingPath = $path;
+    }
+
+    private function randIp() {
+        $ip_long    = array(
+            array('607649792', '608174079'), //36.56.0.0-36.63.255.255
+            array('975044608', '977272831'), //58.30.0.0-58.63.255.255
+            //            array('999751680', '999784447'), //59.151.0.0-59.151.127.255
+            array('1019346944', '1019478015'), //60.194.0.0-60.195.255.255
+            array('1038614528', '1039007743'), //61.232.0.0-61.237.255.255
+            array('1783627776', '1784676351'), //106.80.0.0-106.95.255.255
+            array('1947009024', '1947074559'), //116.13.0.0-116.13.255.255
+            array('1987051520', '1988034559'), //118.112.0.0-118.126.255.255
+            array('2035023872', '2035154943'), //121.76.0.0-121.77.255.255
+            array('2078801920', '2079064063'), //123.232.0.0-123.235.255.255
+            array('-1950089216', '-1948778497'), //139.196.0.0-139.215.255.255
+            //            array('-1425539072', '-1425014785'), //171.8.0.0-171.15.255.255
+            array('-1236271104', '-1235419137'), //182.80.0.0-182.92.255.255、
+            array('-770113536', '-768606209'), //210.25.0.0-210.47.255.255
+            array('-569376768', '-564133889'), //222.16.0.0-222.95.255.255
+        );
+        $rand_key   = mt_rand(0, 14);
+        $huoduan_ip = long2ip(mt_rand($ip_long[$rand_key][0], $ip_long[$rand_key][1]));
+        return $huoduan_ip;
+    }
+
+    private function get_rand_ip() {
+        $arr_1   = array("218", "218", "66", "66", "218", "218", "60", "60", "202", "204", "66", "66", "66", "59", "61", "60", "222", "221", "66", "59", "60", "60", "66", "218", "218", "62", "63", "64", "66", "66", "122", "211");
+        $randarr = mt_rand(0, count($arr_1));
+        $ip1id   = $arr_1[$randarr];
+        $ip2id   = round(rand(600000, 2550000) / 10000);
+        $ip3id   = round(rand(600000, 2550000) / 10000);
+        $ip4id   = round(rand(600000, 2550000) / 10000);
+        return $ip1id . "." . $ip2id . "." . $ip3id . "." . $ip4id;
+    }
+
+    public static function getIp() {
+        if (self::$fpingPath == '') {
+            return '请先设置安装并fping路径';
+        }
+        set_time_limit(0);
+        $sys       = PHP_OS;
+        $separator = '';
+        switch ($sys) {
+            case 'Linux':
+                $separator = "\n";
+                break;
+            case "Windows":
+                $separator = "\r\n";
+                break;
+            case "Unix":
+                $separator = "\n";
+                break;
+            case "Dos":
+                $separator = "\r\n";
+                break;
+            case "Darwin":
+                $separator = "\n";
+                break;
+        }
+
+        $ipArr = array();
+        for ($i = 0; $i <= self::$count; $i++) {
+            $ip        = self::randIp();
+            $ipTempArr = explode('.', $ip);
+            $start     = "{$ipTempArr['0']}.{$ipTempArr['1']}.{$ipTempArr['2']}.0";
+            $end       = "{$ipTempArr['0']}.{$ipTempArr['1']}.{$ipTempArr['2']}.255";
+
+            //            $startDemo = '123.235.54.0';
+            //            $endDemo   = '123.235.54.255';
+            //            $dataDemo  = shell_exec(self::$fpingPath . " -t 100 -a -g {$startDemo} {$endDemo}");
+            //            $data      = explode($separator, trim($dataDemo));
+            //            var_dump($data);
+            //            die;
+            $data = shell_exec(self::$fpingPath . " -t 50 -a -g {$start} {$end}");
+            $data = explode($separator, trim($data));
+            if ($data) {
+                foreach ($data as $ip) {
+                    array_push($ipArr, $ip);
+                }
+            }
+        }
+        return $ipArr;
+    }
+}
+
+echo '正在执行...';
+IpServer::setCount(2);
+IpServer::setFpingPath('/usr/local/fping/sbin/fping');
+$data = IpServer::getIp();
+if ($data) {
+    $file = fopen('ip.txt', 'w');
+    foreach ($data as $ip) {
+        if ($ip) {
+            fwrite($file, $ip . "\n");
+        }
+    }
+    fclose($file);
+}
+echo 'success';
+exit();
